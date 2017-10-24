@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from django.db import models
 from django.core.mail import send_mail
 from django.conf import settings
@@ -7,7 +7,6 @@ from django.contrib.auth.models import AbstractBaseUser, UserManager
 from django.utils import six, timezone
 from django.utils.module_loading import import_string
 from django.utils.translation import ugettext_lazy as _
-from encrypted_model_fields.fields import EncryptedCharField
 
 
 class User(AbstractBaseUser):
@@ -43,15 +42,21 @@ class User(AbstractBaseUser):
 
     subscription_period = models.DurationField(_('subscription period'), default=settings.DEFAULT_SUBSCRIPTION_PERIOD)
 
-    def refresh_subscription_period(self):
-        self.subscription_period = datetime.now()
+    def refresh_last_subscribed(self):
+        self.last_subscribed = datetime.now()
         self.save()
 
     @property
+    def subscription_expires(self):
+        return self.last_subscribed + timedelta(days=self.subscription_period)
+
+    @property
     def already_subscribed(self):
-        return (datetime.now() - self.last_subscribed) <= self.subscription_period
+        return datetime.now() <= self.subscription_expires
 
     subscription_price = models.IntegerField(_('subscription period'), default=settings.DEFAULT_SUBSCRIPTION_PRICE)
+
+    invoices = models.BooleanField(default=True)
 
     objects = UserManager()
 
@@ -74,36 +79,106 @@ class User(AbstractBaseUser):
         """
         send_mail(subject, message, from_email, [self.email], **kwargs)
 
-    def get_addresses_value(self):
-        value = 0
-        for address in self.addresses:
-            value += address.get_value(self.subscription_period)
-        return value
-
     def check_subscription(self):
         if self.already_subscribed:
             return True
-        value = self.get_addresses_value()
+        value = self.get_full_fiat_value()
         if value >= self.subscription_price:
             self.refresh_subscription_period()
             return True
         return False
 
-class Address(models.Model):
-    user = models.ForeignKey(User, related_name="addresses")
-    coin = models.CharField(max_length=32, choices=settings.COINS)
-    public = models.CharField(max_length=64)
+    def get_fiat_values(self):
+        addresses = {}
+        for address in self.addresses.all():
+            addresses[address.public] = address.get_fiat_values(period=self.subscription_period)['full_value']
+        full_value = sum([v['full_value'] for v in addresses.values()])
+        return {
+            'full_value': full_value,
+            'addresses': addresses
+        }
 
-    @property
+    def get_full_fiat_value(self):
+        data = self.get_fiat_values()
+        return data['full_value']
+
+class AddressManager(models.Manager):
+
+    def create_address(self, user, coin):
+        address = self.model(user=user, coin=coin)
+        coin_api = address.coin_api()
+        address.public = coin_api.new_address()
+        address.save()
+        return self.public
+
+class Address(models.Model):
+
     def coin_api(self):
         coin_class_str = "cryptovpnapp.%s.CoinWallet" % self.coin.lower()
         coin_class = import_string(coin_class_str)
         return coin_class(self)
 
-    def create_address(self, user, coin):
-        self.user = user
-        self.coin = coin
-        self.public = self.coin_api.new_address()
-        self.save()
-        return self.public
+    def get_fiat_values(self, period=None):
+        coin_api = self.coin_api()
+        transactions = coin_api.get_transactions(period=period)
+        for t in transactions:
+            t.price = Price.objects.get_archived_price(self.coin, t.timestamp)
+        full_value = sum([t.price for t in transactions])
+        return {
+            'address_full_value': full_value,
+            'transactions': transactions
+        }
 
+
+    user = models.ForeignKey(User, related_name="addresses")
+    coin = models.CharField(max_length=12, choices=settings.COINS)
+    public = models.CharField(max_length=64)
+
+    objects = AddressManager()
+
+
+class PriceManager(models.Manager):
+    @property
+    def coin_api(self):
+        coin_class_str = "cryptovpnapp.%s.Exchange" % self.coin.lower()
+        coin_class = import_string(coin_class_str)
+        return coin_class(self)
+
+    def add_price(self, coin):
+        from_time = datetime.now()
+        interval = settings.BTC_PRICE_UPDATE_INTERVAL
+        price = self.coin_api.get_current_price()
+        model = self.model(coin=coin, price=price, from_time=from_time)
+        model.to_time = from_time + timedelta(minutes=interval)
+        model.save()
+        return model.price
+
+    def get_archived_price(self, coin, timestamp):
+        price = self.filter(coin=coin, from_time__lt=timestamp, to_time__gt=timestamp).values_list('price', flat=True).first()
+        return price
+
+    def get_current_price_or_add(self, coin):
+        price = self.get_archived_price(coin, datetime.now())
+        if not price:
+            price = self.add_price(coin)
+        return price
+
+class Price(models.Model):
+    coin = models.CharField(max_length=12, choices=settings.COINS)
+    from_time = models.DateTimeField()
+    to_time = models.DateTimeField()
+    price = models.DecimalField()
+
+    objects = PriceManager()
+
+class RefundRequest(models.Model):
+    user = models.ForeignKey(User)
+    transaction_id = models.CharField(max_length=64, null=True)
+    amount_requested = models.DecimalField(decimal_places=10, null=True)
+    reqested_on = models.DateTimeField(auto_now_add=True)
+    text = models.TextField(null=True)
+
+class Comments(models.Model):
+    user = models.ForeignKey(User)
+    refund_request = models.ForeignKey(RefundRequest, related_name="comments")
+    text = models.TextField()

@@ -3,5 +3,4 @@ djangorestframework
 django-crispy-forms
 django-rest-auth
 django-filter
-django-encrypted-model-fields
 blockchain

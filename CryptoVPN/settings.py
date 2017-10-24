@@ -45,6 +45,11 @@ BTC_STORE_ADDRESSES = [{
     'address2': 0.5
 }]
 
+BTC_CALLBACK_URL = 'http://www.whateverVPN.com/api/balance_update/%s'
+BTC_CONFS_BEFORE_NOTIFICATION = 5
+
+BTC_PRICE_UPDATE_INTERVAL = 15
+
 DEFAULT_SUBSCRIPTION_PERIOD = datetime.timedelta(days=30)
 DEFAULT_SUBSCRIPTION_PRICE = 7.99
 
