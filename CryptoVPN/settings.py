@@ -30,7 +30,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 
-COINS = [('BTC', 'BITCOIN'), ('ETH', 'ETHEREUM')]
+COINS = [('BTC', 'BITCOIN'), ('BTCTEST', 'BITCOIN TESTNET'), ('ETH', 'ETHEREUM')]
 
 BTC_WALLET_SETTINGS = {
     'identifier': None,
@@ -44,9 +44,6 @@ BTC_STORE_ADDRESSES = [{
     'address1': 0.5,
     'address2': 0.5
 }]
-
-BTC_CALLBACK_URL = 'http://www.whateverVPN.com/api/balance_update/%s'
-BTC_CONFS_BEFORE_NOTIFICATION = 5
 
 BTC_PRICE_UPDATE_INTERVAL = 15
 
@@ -115,6 +112,7 @@ DATABASES = {
     }
 }
 
+AUTH_USER_MODEL = 'cryptovpnapp.models.User'
 
 # Password validation
 # https://docs.djangoproject.com/en/1.11/ref/settings/#auth-password-validators
