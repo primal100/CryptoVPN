@@ -1,7 +1,6 @@
-*sqlite3s
+*sqlite3
 .idea/vcs.xml
 .idea/workspace.xml
 CryptoVPN/__pycache__/
 cryptovpnapp/__pycache__/
 cryptovpnapp/migrations/__pycache__/
-db.sqlite3
