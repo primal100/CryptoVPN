@@ -4,6 +4,7 @@ from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.utils.module_loading import import_string
 from django.utils.translation import ugettext_lazy as _
+from .fields import CryptoField, FiatField
 
 class User(AbstractUser):
     first_name = None
@@ -11,7 +12,7 @@ class User(AbstractUser):
 
 class Service(models.Model):
     name = models.CharField(max_length=32)
-    active = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=True)
 
     def add_subscription_type(self, price, period=None):
         subscription_type = SubscriptionType(service=self, price=price, period=period)
@@ -31,17 +32,16 @@ class Service(models.Model):
 
 class SubscriptionType(models.Model):
     name = models.CharField(max_length=48)
-    price = models.DecimalField(decimal_places=2, default=settings.DEFAULT_SUBSCRIPTION_PRICE)
+    price = FiatField(default=settings.DEFAULT_SUBSCRIPTION_PRICE)
     currency = models.CharField(default="USD", max_length=12)
     period = models.DurationField(default=timedelta(days=30))
     service = models.ForeignKey(Service, related_name="subscription_types")
-    active = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=True)
 
     def create_subscription(self, user, coin):
         subscription = Subscription(user=user, subscription_type=self)
         subscription.save()
-        address = Address(subscription=subscription, coin=coin)
-        address.save()
+        address = subscription.new_address(coin)
         invoice = address.generate_invoice(subscription)
         return invoice
 
@@ -50,22 +50,28 @@ class SubscriptionType(models.Model):
 
 class Subscription(models.Model):
     user = models.ForeignKey(User, related_name="subscriptions")
-    subscription_type = models.ForeignKey(SubscriptionType, verbose_name=_("subscription type", related_name="subscriptions"))
+    subscription_type = models.ForeignKey(SubscriptionType, verbose_name=_("subscription type"), related_name="subscriptions")
     last_subscribed = models.DateTimeField(_('last subscribed'), null=True)
     subscription_expires = models.DateTimeField(_('subscription expires'), null=True)
     auto_renewal = models.BooleanField(default=False)
-    active = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=True)
 
     def __str__(self):
         return "%s %s" % (self.user, self.subscription_type)
 
-    class Meta:
-        unique_together = (("user", "subscription_type"),)
+    #class Meta:
+    #    unique_together = (("user", "subscription_type"),)
+
+    def new_address(self, coin):
+        address = Address.objects.filter(subscription__isnull=True, coin=coin, is_active=True).first()
+        address.subscription = self
+        address.save()
+        return address
 
     def check_subscription_paid(self):
         if self.already_subscribed:
             return True
-        addresses = self.addresses.filter(active=True)
+        addresses = self.addresses.filter(is_active=True)
         for address in addresses:
             paid_time = address.check_subscription_paid()
             if paid_time:
@@ -83,25 +89,23 @@ class Subscription(models.Model):
 class OpenInvoiceAlreadyExists(Exception):
     pass
 
+
 class Address(models.Model):
-    subscription = models.ForeignKey(Subscription, related_name="addresses")
+    public = models.CharField(max_length=64, primary_key=True)
+    subscription = models.ForeignKey(Subscription, related_name="subscriptions", null=True)
     coin = models.CharField(max_length=12, choices=settings.COINS)
-    public = models.CharField(max_length=64)
-    active = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name_plural = "addresses"
 
     def __str__(self):
         return self.public
 
     def coin_api(self):
-        coin_class_str = "cryptovpnapp.%s.CoinWallet" % self.coin.lower()
+        coin_class_str = "cryptovpnapp.%s.Blockchain" % self.coin.lower()
         coin_class = import_string(coin_class_str)
         return coin_class(self)
-
-    def save(self, **kwargs):
-        if not self.public:
-            coin_api = self.coin_api()
-            self.public = coin_api.new_address()
-        super(Address, self).save(**kwargs)
 
     def check_invoice_payments(self, subscription_period):
         invoices = self.invoices.filter(paid=False, start_time__gt=datetime.now() - timedelta(days=subscription_period))
@@ -112,7 +116,7 @@ class Address(models.Model):
                 crypto_paid = 0
                 for t in transactions:
                     if t.datetime >= invoice.start_time and t.datetime <= invoice.expiry_time:
-                        Transaction(tx_index=t.tx_index, invoice=invoice, time=t.datetime, amount=t.total_value).save()
+                        Transaction(tx_hash=t.hash, invoice=invoice, time=t.datetime, total_value=t.total_value, coin=self.coin).save()
                         crypto_paid += t.total_value
                         if crypto_paid >= invoice.crypto_price and not invoice.paid:
                             invoice.paid = True
@@ -145,26 +149,28 @@ class Address(models.Model):
 
 class Invoice(models.Model):
     address = models.ForeignKey(Address, related_name="invoices")
-    crypto_due = models.DecimalField(decimal_places=12)
-    fiat_due = models.DecimalField(decimal_places=2)
+    crypto_due = CryptoField()
+    fiat_due = FiatField()
     currency = models.CharField(max_length=12)
     start_time = models.DateTimeField(auto_now_add=True)
     expiry_time = models.DateTimeField()
     paid = models.BooleanField(default=False)
     paid_time = models.DateTimeField(null=True)
-    actual_paid = models.DecimalField(decimal_places=12)
+    actual_paid = CryptoField()
 
     def __str__(self):
         return self.pk
 
 class Transaction(models.Model):
-    tx_index = models.CharField(max_length=128)
+    hash = models.CharField(max_length=128, primary_key=True)
     invoice = models.ForeignKey(Invoice)
     time = models.DateTimeField()
-    amount = models.DecimalField(decimal_places=12)
+    coin = models.CharField(max_length=12, choices=settings.COINS)
+    total_value = CryptoField()
+    fee = CryptoField()
 
     def __str__(self):
-        return self.tx_index
+        return self.tx_hash
 
 class RefundRequest(models.Model):
     user = models.ForeignKey(User, related_name="refund_requests")
@@ -172,7 +178,7 @@ class RefundRequest(models.Model):
     invoice = models.ForeignKey(Invoice, null=True, related_name="refund_requests")
     address = models.ForeignKey(Address, null=True, related_name="refund_requests")
     transaction_id = models.CharField(max_length=64, null=True)
-    amount_requested = models.DecimalField(decimal_places=10, null=True)
+    amount_requested = CryptoField(null=True)
     reqested_on = models.DateTimeField(auto_now_add=True)
     text = models.TextField(null=True)
 

@@ -112,7 +112,7 @@ DATABASES = {
     }
 }
 
-AUTH_USER_MODEL = 'cryptovpnapp.models.User'
+AUTH_USER_MODEL = 'cryptovpnapp.User'
 
 # Password validation
 # https://docs.djangoproject.com/en/1.11/ref/settings/#auth-password-validators
@@ -175,7 +175,6 @@ REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': ('django_filters.rest_framework.DjangoFilterBackend',
                                 'rest_framework.filters.OrderingFilter',
                                 'rest_framework.filters.SearchFilter'),
-    'DEFAULT_METADATA_CLASS': 'django_shamrock.metadata.Metadata',
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 10,
     'DEFAULT_RENDERER_CLASSES': (

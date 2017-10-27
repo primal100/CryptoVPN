@@ -1,1 +1,7 @@
-# Created by .ignore support plugin (hsz.mobi)
+*sqlite3s
+.idea/vcs.xml
+.idea/workspace.xml
+CryptoVPN/__pycache__/
+cryptovpnapp/__pycache__/
+cryptovpnapp/migrations/__pycache__/
+db.sqlite3

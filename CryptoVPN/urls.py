@@ -20,5 +20,7 @@ from cryptovpnapp.views import Home
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'^($|index)', Home.as_view(), name='index'),
+    url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     url(r'^api/1.0/rest-auth/', include('rest_auth.urls')),
+    url(r'^api/1.0/rest-auth/registration/', include('rest_auth.registration.urls')),
 ]

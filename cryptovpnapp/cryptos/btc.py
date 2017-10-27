@@ -1,14 +1,38 @@
 from datetime import datetime
-from blockchain import blockexplorer, exchangerates, wallet
+from blockchain import blockexplorer, exchangerates
 from django.conf import settings
 
-btc_wallet = wallet.Wallet(**settings.BTC_WALLET_SETTINGS)
 api_code=settings.BTC_WALLET_SETTINGS['api_code']
 
-class CoinWallet:
+class Blockchain:
     def __init__(self, address=None):
         self.address = address
         self.expiry_period = settings.BTC_PRICE_UPDATE_INTERVAL
+
+    def generate_test_transaction(self, invoice):
+        import time, random, binascii, os
+        t = {
+            'double_spend': False,
+            'block_height': random.randint(100000, 900000),
+            'time': int(time.time()),
+            'relayed_by': '0.0.0.0',
+            'hash': binascii.hexlify(os.urandom(16)),
+            'tx_index': random.randint(100000000, 900000000),
+            'ver': 1,
+            'size': random.randint(100, 900),
+            'inputs': [
+                {
+
+                }
+            ],
+            'out': [
+                {
+
+                }
+            ]
+        }
+        transaction = blockexplorer.Transaction(t)
+        return [transaction]
 
     def get_transactions(self, period):
         tx_filter = blockexplorer.FilterType.ConfirmedOnly
@@ -20,32 +44,9 @@ class CoinWallet:
         if period:
             transactions = [transaction for transaction in transactions if (now - transaction.date) > period]
         for transaction in transactions:
-            transaction.total_value = sum([i.value for i in transaction.inputs]) - sum([i.value for i in transaction.outputs])
+            transaction.total_value = sum([i.value for i in transaction.outputs])
+            transaction.fee = sum([i.value for i in transaction.inputs]) - transaction.total_value
         return transactions
-
-    @property
-    def wallet_address(self):
-        return btc_wallet.get_address(self.address.public)
-
-    @property
-    def balance(self):
-        return self.wallet_address.balance
-
-    def new_address(self, username):
-        return btc_wallet.new_address(label=username)
-
-    def distribute_coins(self):
-        if self.address:
-            from_address = self.address.public
-        else:
-            from_address = None
-        amount = self.balance()
-        send_addresses = settings.BTC_STORE_ADDRESSES
-        recipients = {address:fraction*amount for address,fraction in send_addresses.items()}
-        return btc_wallet.send_many(recipients, from_address=from_address)
-
-    def list_addresses(self):
-        return btc_wallet.list_addresses()
 
     def convert_price_to_crypto(self, currency, price):
         return exchangerates.to_btc(currency, price)

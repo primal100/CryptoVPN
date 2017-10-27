@@ -1,1 +1,46 @@
-{%verbatim%}{%verbatim%}
+{% load static %}
+{%verbatim%}
+<html>
+<head>
+    <title></title>
+    {%endverbatim%}
+        <link href="{% static 'cryptovpnapp/css/cryptovpn.css' %}" rel="stylesheet">
+
+
+        <script src="{% static 'cryptovpnapp/js/app.js' %}"></script>
+    {%verbatim%}
+</head>
+
+<body>
+<h1>Hello, Ramiro</h1>
+<h1>Django Admin</h1>
+<a href="admin">Django Admin</a>
+
+<h1>Django Rest Framework Browsable API</h1>
+
+<h2>Session Authentication</h2>
+<ul>
+    <li><a href="api-auth/login">Rest Framework Browsable API login</a></li>
+    <li><a href="api-auth/logout">Rest Framework Browsable API logout</a></li>
+</ul>
+
+<h2>Django rest-auth endpoints</h2>
+Add ?format=json to urls to see raw json response
+<ul>
+<li><a href="api/1.0/rest-auth/login">Rest Token Login</a></li>
+<li><a href="api/1.0/rest-auth/login">Rest Token Logout</a></li>
+<li><a href="api/1.0/rest-auth/password/change">Rest Password Change</a></li>
+<li><a href=/api/1.0/rest-auth/password/reset/ ">Rest Password Reset</a></li>
+<li><a href="api/1.0/rest-auth/password/reset/confirm/">Rest Confirm Password Reset</a></li>
+<li><a href="api/1.0/rest-auth/user/">Rest Current User (needs work to remove first name and last name)</a></li>
+<li><a href="api/1.0/rest-auth/registration/">Rest Registration</a></li>
+<li><a href="api/1.0/rest-auth/registration/verify-email">Rest Confirm Email</a></li>
+</ul>
+</body>
+
+All other endpoints coming soon....
+
+</html>
+
+
+{%endverbatim%}
