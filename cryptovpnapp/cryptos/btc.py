@@ -9,7 +9,7 @@ class Blockchain:
         self.address = address
         self.expiry_period = settings.BTC_PRICE_UPDATE_INTERVAL
 
-    def generate_test_transaction(self, invoice):
+    def generate_test_transaction(self, invoices):
         import time, random, binascii, os
         t = {
             'double_spend': False,
@@ -22,30 +22,32 @@ class Blockchain:
             'size': random.randint(100, 900),
             'inputs': [
                 {
-
+                    'value': invoices[0].crypto_due
                 }
             ],
             'out': [
                 {
-
+                    'value': invoices[0].crypto_due * 0.999
                 }
             ]
         }
         transaction = blockexplorer.Transaction(t)
-        return [transaction]
+        return self.manage_transactions(invoices, [transaction])
 
-    def get_transactions(self, period):
+    def get_transactions(self, invoices):
         tx_filter = blockexplorer.FilterType.ConfirmedOnly
         address = blockexplorer.get_address(self.address.public, filter=tx_filter, api_code=api_code)
-        transactions = address.transactions
-        for transaction in transactions:
-            transaction.datetime = datetime.fromtimestamp(transaction.time)
-        now = datetime.now()
-        if period:
-            transactions = [transaction for transaction in transactions if (now - transaction.date) > period]
-        for transaction in transactions:
-            transaction.total_value = sum([i.value for i in transaction.outputs])
-            transaction.fee = sum([i.value for i in transaction.inputs]) - transaction.total_value
+        return self.manage_transactions(invoices, address.transactions)
+
+    def manage_transactions(self, invoices, transactions):
+        for t in transactions:
+            t.datetime = datetime.fromtimestamp(t.time)
+        txs = []
+        for invoice in invoices:
+            txs += [t for t in transactions if invoice.within_time_period(t.time)]
+        for t in txs:
+            t.total_value = sum([i.value for i in t.outputs])
+            t.fee = sum([i.value for i in t.inputs]) - t.total_value
         return transactions
 
     def convert_price_to_crypto(self, currency, price):

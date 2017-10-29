@@ -34,22 +34,29 @@ class UserAdmin(admin.ModelAdmin):
     list_display = ('username', 'email', 'is_staff', 'is_superuser', 'is_active', 'date_joined', 'last_login')
 
 class ServiceAdmin(admin.ModelAdmin):
-    list_display = ('name', 'is_active')
+    list_display = ('name', 'priority', 'is_active')
 
 class SubscriptionTypeAdmin(admin.ModelAdmin):
-    list_display = ('name', 'currency', 'price', 'period', 'service', 'is_active')
+    list_display = ('name', 'priority', 'currency', 'price', 'period', 'service', 'is_active')
 
 class SubscriptionAdmin(admin.ModelAdmin):
-    list_display = ('user', 'subscription_type', 'last_subscribed', 'subscription_expires', 'is_active')
+    list_display = ('user', 'subscription_type', 'last_subscribed', 'expires', 'is_active')
 
 class AddressAdmin(admin.ModelAdmin):
-    list_display = ('public', 'coin', 'subscription', 'is_active')
+    list_display = ('public', 'coin', 'subscription', 'test_address', 'is_active')
 
 class InvoiceAdmin(ReadOnlyAdmin):
     list_display = ('address', 'currency', 'fiat_due', 'crypto_due', 'start_time', 'expiry_time', 'paid', 'paid_time', 'actual_paid')
 
 class TransactionAdmin(ReadOnlyAdmin):
     list_display = ('hash', 'coin', 'invoice', 'time', 'total_value', 'fee')
+
+class RefundRequestAdmin(ReadOnlyAdmin):
+    list_display = ('user', 'service', 'invoice', 'address', 'transaction_hash', 'amount_requested',
+                    'requested_on', 'last_modified', 'resolved', 'is_active')
+
+class CommentAdmin(ReadOnlyAdmin):
+    list_display = ('user', 'refund_request', 'created_on', 'last_modified', 'is_active')
 
 admin.site.register(User, UserAdmin)
 admin.site.register(Service, ServiceAdmin)

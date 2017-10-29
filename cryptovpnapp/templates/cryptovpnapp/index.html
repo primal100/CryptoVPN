@@ -5,9 +5,8 @@
     <title></title>
     {%endverbatim%}
         <link href="{% static 'cryptovpnapp/css/cryptovpn.css' %}" rel="stylesheet">
-
-
-        <script src="{% static 'cryptovpnapp/js/app.js' %}"></script>
+        <script src="{% static 'cryptovpnapp/js/jquery-3.2.1.min.js' %}"></script>
+        <script src="{% static 'cryptovpnapp/js/test.js' %}"></script>
     {%verbatim%}
 </head>
 
@@ -27,18 +26,23 @@
 <h2>Django rest-auth endpoints</h2>
 Add ?format=json to urls to see raw json response
 <ul>
-<li><a href="api/1.0/rest-auth/login">Rest Token Login</a></li>
-<li><a href="api/1.0/rest-auth/login">Rest Token Logout</a></li>
-<li><a href="api/1.0/rest-auth/password/change">Rest Password Change</a></li>
+<li><a href="api/1.0/rest-auth/login/">Rest Token Login</a></li>
+<li><a href="api/1.0/rest-auth/login/">Rest Token Logout</a></li>
+<li><a href="api/1.0/rest-auth/password/change/">Rest Password Change</a></li>
 <li><a href=/api/1.0/rest-auth/password/reset/ ">Rest Password Reset</a></li>
 <li><a href="api/1.0/rest-auth/password/reset/confirm/">Rest Confirm Password Reset</a></li>
 <li><a href="api/1.0/rest-auth/user/">Rest Current User (needs work to remove first name and last name)</a></li>
 <li><a href="api/1.0/rest-auth/registration/">Rest Registration</a></li>
-<li><a href="api/1.0/rest-auth/registration/verify-email">Rest Confirm Email</a></li>
+<li><a href="api/1.0/rest-auth/registration/verify-email/">Rest Confirm Email</a></li>
+</ul>
+
+<h2>Resource endpoints</h2>
+To see these links in the browsable api, first login with the Rest Framework Browsable API login link above as a superuser.
+<ul>
+<li><a href="api/1.0/">API Resource Links</a></li>
 </ul>
 </body>
 
-All other endpoints coming soon....
 
 </html>
 

@@ -23,30 +23,19 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = '(@mto!$8=x=oog6clo1bjvi5)fer2%6g+y%q1v$$ns*_*^xq5q'
 
-FIELD_ENCRYPTION_KEY = os.environ.get('FIELD_ENCRYPTION_KEY', '')
-
 # SECURITY WARNING: don't run with debug turned on in production!
+#Settings that should be changed depending on development vs production
 DEBUG = True
+TEST_ADDRESSES = True
+CORS_ORIGIN_ALLOW_ALL = True
+ALLOWED_HOSTS = ['*']
+#ALLOWED_HOSTS = [] #Allows localhost only
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
-
-COINS = [('BTC', 'BITCOIN'), ('BTCTEST', 'BITCOIN TESTNET'), ('ETH', 'ETHEREUM')]
-
-BTC_WALLET_SETTINGS = {
-    'identifier': None,
-    'password': '',
-    'service_url': 'localhost:4000',
-    'second_password': None,
-    'api_code': None
-}
-
-BTC_STORE_ADDRESSES = [{
-    'address1': 0.5,
-    'address2': 0.5
-}]
-
+#Crypto coin settings
+COINS = [('BTC', 'BITCOIN'), ('ETH', 'ETHEREUM')]
 BTC_PRICE_UPDATE_INTERVAL = 15
 
+#Default settings for new subscriptions
 DEFAULT_SUBSCRIPTION_PERIOD = datetime.timedelta(days=30)
 DEFAULT_SUBSCRIPTION_PRICE = 7.99
 
@@ -67,7 +56,7 @@ INSTALLED_APPS = [
     'allauth',
     'allauth.account',
     'rest_auth.registration',
-    'encrypted_model_fields',
+    'corsheaders',
     'cryptovpnapp'
 ]
 
@@ -79,6 +68,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.CommonMiddleware',
 ]
 
 ROOT_URLCONF = 'CryptoVPN.urls'
@@ -168,6 +159,7 @@ SITE_ID = 1
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAdminUser',
@@ -185,7 +177,7 @@ REST_FRAMEWORK = {
 }
 
 # Django Allauth config
-ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
+ACCOUNT_EMAIL_VERIFICATION = 'optional'
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_ACTIVATION_DAYS = 1
 ACCOUNT_AUTHENTICATION_METHOD = "username_email"

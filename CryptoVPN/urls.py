@@ -15,6 +15,7 @@ Including another URLconf
 """
 from django.conf.urls import url, include
 from django.contrib import admin
+from cryptovpnapp.urls import cryptovpn_api_urls
 from cryptovpnapp.views import Home
 
 urlpatterns = [
@@ -23,4 +24,5 @@ urlpatterns = [
     url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     url(r'^api/1.0/rest-auth/', include('rest_auth.urls')),
     url(r'^api/1.0/rest-auth/registration/', include('rest_auth.registration.urls')),
+    url(r'^api/1.0/', include(cryptovpn_api_urls.urls)),
 ]

@@ -4,4 +4,6 @@ django-allauth
 django-crispy-forms
 django-rest-auth
 django-filter
+django-cors-headers
+drfxtra
 blockchain
