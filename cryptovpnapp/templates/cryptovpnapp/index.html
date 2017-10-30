@@ -7,11 +7,30 @@
         <link href="{% static 'cryptovpnapp/css/cryptovpn.css' %}" rel="stylesheet">
         <script src="{% static 'cryptovpnapp/js/jquery-3.2.1.min.js' %}"></script>
         <script src="{% static 'cryptovpnapp/js/test.js' %}"></script>
+          <script>
+        window.drf = {
+          csrfHeaderName: "{{ csrf_header_name|default:'X-CSRFToken' }}",
+          csrfCookieName: "{{ csrf_cookie_name|default:'csrftoken' }}"
+        };
+      </script>
+        <script src="{% static 'rest_framework/js/csrf.js' %}"></script>
     {%verbatim%}
 </head>
 
 <body>
 <h1>Hello, Ramiro</h1>
+{%endverbatim%}
+<p>
+The rest endpoints use JWT token authentication but the Django Admin and Django Rest Framework Browsable API use session authentication which may cause confusion.
+</p>
+<p>
+    {% if user.is_authenticated %}
+You currently have a session login as {{user.username}}
+{% else %}
+You currently have no session login
+{% endif %}
+</p>
+{% verbatim%}
 <h1>Django Admin</h1>
 <a href="admin">Django Admin</a>
 

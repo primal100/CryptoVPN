@@ -18,15 +18,15 @@ class User(AbstractUser):
 
 class Service(models.Model):
     name = models.CharField(max_length=32)
-    priority = models.IntegerField(null=True)
+    priority = models.IntegerField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
 
     def save(self, *args, **kwargs):
         super(Service, self).save(*args, **kwargs)
         if not self.priority:
-            latest_priority = self.model.objects.all().order_by('-priority')[0].values_list('priority', flat=True).first()
+            latest_priority = Service.objects.values_list('priority', flat=True).order_by('-priority').first()
             self.priority = latest_priority + 1
-            self.save()
+            super(Service, self).save(*args, **kwargs)
 
     def add_subscription_type(self, price, period=None):
         subscription_type = SubscriptionType(service=self, price=price, period=period)
@@ -55,7 +55,7 @@ class Service(models.Model):
 
 class SubscriptionType(models.Model):
     name = models.CharField(max_length=48)
-    priority = models.IntegerField(null=True)
+    priority = models.IntegerField(null=True, blank=True)
     price = FiatField(default=settings.DEFAULT_SUBSCRIPTION_PRICE)
     currency = models.CharField(default="USD", max_length=12)
     period = models.DurationField(default=timedelta(days=30))
@@ -63,17 +63,19 @@ class SubscriptionType(models.Model):
     is_active = models.BooleanField(default=True)
 
     def has_valid_subscription(self, user):
-        sub = self.subscriptions.first(user=user, is_active=True)
-        if sub.check_subscription_paid:
+        sub = self.subscriptions.filter(user=user, is_active=True).first()
+        if sub and sub.check_subscription_paid:
             return {'has': bool(sub), 'is_valid': True}
         return {'has': bool(sub), 'is_valid': False}
 
     def save(self, *args, **kwargs):
-        super(Service, self).save(*args, **kwargs)
+        super(SubscriptionType, self).save(*args, **kwargs)
         if not self.priority:
-            latest_priority = self.model.objects.all().order_by('-priority')[0].values_list('priority', flat=True).first()
+            latest_priority = SubscriptionType.objects.values_list('priority', flat=True).order_by('-priority').first()
+            if not latest_priority and not latest_priority == 0:
+                latest_priority = 0
             self.priority = latest_priority + 1
-            self.save()
+            super(SubscriptionType, self).save(*args, **kwargs)
 
     def __str__(self):
         return self.name
@@ -85,7 +87,7 @@ class SubscriptionType(models.Model):
         self.save()
 
 class Subscription(models.Model):
-    user = models.ForeignKey(User, related_name="subscriptions")
+    user = models.ForeignKey(User, related_name="subscriptions", editable=False)
     subscription_type = models.ForeignKey(SubscriptionType, verbose_name=_("subscription type"), related_name="subscriptions")
     last_subscribed = models.DateTimeField(_('last subscribed'), null=True)
     expires = models.DateTimeField(_('subscription expires'), null=True)
@@ -136,11 +138,11 @@ class OpenInvoiceAlreadyExists(Exception):
     pass
 
 class Address(models.Model):
-    public = models.CharField(max_length=64, primary_key=True)
-    subscription = models.ForeignKey(Subscription, related_name="subscriptions", null=True)
-    coin = models.CharField(max_length=12, choices=settings.COINS)
+    public = models.CharField(max_length=64, primary_key=True, editable=False)
+    subscription = models.ForeignKey(Subscription, related_name="subscriptions", null=True, editable=False)
+    coin = models.CharField(max_length=12, choices=settings.COINS, editable=False)
     is_active = models.BooleanField(default=True)
-    test_address = models.BooleanField(default=False)
+    test_address = models.BooleanField(default=False, editable=False)
 
     class Meta:
         verbose_name_plural = "addresses"
@@ -190,7 +192,7 @@ class Address(models.Model):
         self.save()
 
 class Invoice(models.Model):
-    address = models.ForeignKey(Address, related_name="invoices")
+    address = models.ForeignKey(Address, related_name="invoices", editable=False)
     crypto_due = CryptoField()
     fiat_due = FiatField()
     currency = models.CharField(max_length=12)
@@ -222,7 +224,7 @@ class Invoice(models.Model):
         return self.pk
 
 class Transaction(models.Model):
-    hash = models.CharField(max_length=128, primary_key=True)
+    hash = models.CharField(max_length=128, primary_key=True, editable=False)
     invoice = models.ForeignKey(Invoice)
     time = models.DateTimeField()
     coin = models.CharField(max_length=12, choices=settings.COINS)
@@ -233,13 +235,13 @@ class Transaction(models.Model):
         return self.tx_hash
 
 class RefundRequest(models.Model):
-    user = models.ForeignKey(User, related_name="refund_requests")
+    user = models.ForeignKey(User, related_name="refund_requests", editable=False)
     service = models.ForeignKey(Service, null=True, related_name="refund_requests")
     invoice = models.ForeignKey(Invoice, null=True, related_name="refund_requests")
     address = models.ForeignKey(Address, null=True, related_name="refund_requests")
     transaction_hash = models.CharField(max_length=64, null=True)
     amount_requested = CryptoField(null=True)
-    requested_on = models.DateTimeField(auto_now_add=True)
+    requested_on = models.DateTimeField(auto_now_add=True, editable=False)
     last_modified = models.DateTimeField(auto_now=True)
     text = models.TextField(null=True)
     resolved = models.BooleanField(default=False)
@@ -255,11 +257,11 @@ class RefundRequest(models.Model):
         self.save()
 
 class Comment(models.Model):
-    user = models.ForeignKey(User)
+    user = models.ForeignKey(User, editable=False)
     refund_request = models.ForeignKey(RefundRequest, related_name="comments")
     text = models.TextField()
-    created_on = models.DateTimeField(auto_now_add=True)
-    last_modified = models.DateTimeField(auto_now=True)
+    created_on = models.DateTimeField(auto_now_add=True, editable=False)
+    last_modified = models.DateTimeField(auto_now=True, editable=False)
     is_active = models.BooleanField(default=True)
 
     def __str__(self):

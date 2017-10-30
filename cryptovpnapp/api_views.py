@@ -21,7 +21,7 @@ class XtraViewSetMixinWithDeactivate(XtraViewSetMixin):
             self.log_deletion(instance, 'deleted')
 
 
-class ServiceViewset(ReadOnlyModelViewSet, XtraViewSetMixinWithDeactivate):
+class ServiceViewset(XtraViewSetMixinWithDeactivate, ReadOnlyModelViewSet):
     queryset = Service.objects.filter(is_active=True)
     serializer_class = ServiceSerializer
     permission_classes = ()
@@ -32,7 +32,7 @@ class ServiceViewset(ReadOnlyModelViewSet, XtraViewSetMixinWithDeactivate):
     autocomplete_fields = ("name",)
 
 
-class SubscriptionTypeViewset(ReadOnlyModelViewSet, XtraViewSetMixinWithDeactivate):
+class SubscriptionTypeViewset(XtraViewSetMixinWithDeactivate, ReadOnlyModelViewSet):
     queryset = SubscriptionType.objects.filter(is_active=True)
     serializer_class = SubscriptionTypeSerializer
     permission_classes = ()
@@ -44,7 +44,7 @@ class SubscriptionTypeViewset(ReadOnlyModelViewSet, XtraViewSetMixinWithDeactiva
     autocomplete_foreign_keys = {'service':{'queryset': Service.objects.filter(is_active=True), 'related_field': 'name'}}
 
 
-class SubscriptionViewset(ReadOnlyModelViewSet, XtraViewSetMixinWithDeactivate):
+class SubscriptionViewset(XtraViewSetMixinWithDeactivate, ReadOnlyModelViewSet):
     queryset = Subscription.objects.filter(is_active=True)
     serializer_class = SubscriptionSerializer
     permission_classes = (IsAuthenticated,)
@@ -58,7 +58,7 @@ class SubscriptionViewset(ReadOnlyModelViewSet, XtraViewSetMixinWithDeactivate):
     def get_queryset(self):
         return self.queryset.filter(user=self.request.user)
 
-class AddressViewset(ReadOnlyModelViewSet, CreateModelMixin, XtraViewSetMixinWithDeactivate):
+class AddressViewset(XtraViewSetMixin, ReadOnlyModelViewSet, CreateModelMixin):
     queryset = Address.objects.filter(is_active=True, test_address=settings.TEST_ADDRESSES)
     serializer_class = AddressSerializer
     permission_classes = (IsAuthenticated,)
@@ -71,7 +71,7 @@ class AddressViewset(ReadOnlyModelViewSet, CreateModelMixin, XtraViewSetMixinWit
     def get_queryset(self):
         return self.queryset.filter(subscription__user=self.request.user)
 
-class InvoiceViewset(ReadOnlyModelViewSet, CreateModelMixin, XtraViewSetMixin):
+class InvoiceViewset(XtraViewSetMixin, ReadOnlyModelViewSet, CreateModelMixin):
     queryset = Invoice.objects.filter()
     serializer_class = InvoiceSerializer
     permission_classes = (IsAuthenticated,)
@@ -85,7 +85,7 @@ class InvoiceViewset(ReadOnlyModelViewSet, CreateModelMixin, XtraViewSetMixin):
     def get_queryset(self):
         return self.queryset.filter(address__subscription__user=self.request.user)
 
-class RefundRequestViewset(ModelViewSet, XtraViewSetMixinWithDeactivate):
+class RefundRequestViewset(XtraViewSetMixinWithDeactivate, ModelViewSet):
     queryset = RefundRequest.objects.filter(is_active=True)
     serializer_class = RefundRequestSerializer
     permission_classes = (IsAuthenticated,)
@@ -102,7 +102,7 @@ class RefundRequestViewset(ModelViewSet, XtraViewSetMixinWithDeactivate):
     def get_queryset(self):
         return self.queryset.filter(user=self.request.user)
 
-class CommentViewset(ModelViewSet, XtraViewSetMixinWithDeactivate):
+class CommentViewset(XtraViewSetMixinWithDeactivate, ModelViewSet):
     queryset = Comment.objects.filter(is_active=True)
     serializer_class = CommentSerializer
     permission_classes = (IsAuthenticated,)

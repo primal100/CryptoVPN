@@ -54,7 +54,7 @@ function logout(){
 }
 
 function changePassword(response){
-    return $.ajax(changePasswordUrl, {method: "POST", data: changePasswordData);
+    return $.ajax(changePasswordUrl, {method: "POST", data: changePasswordData});
 }
 
 function sendPasswordReset(response){
@@ -86,7 +86,7 @@ function checkSubscription(response){
 }
 
 function orderSubscription(response){
-    return $.ajax(subscriptionsUrl, {method: "POST", data=orderSubscriptionData});
+    return $.ajax(subscriptionsUrl, {method: "POST", data: orderSubscriptionData});
 }
 
 function getServices(response){
@@ -101,7 +101,6 @@ function setAuthHeader(response){
     $.ajaxSetup({
         beforeSend: function(xhr, settings) {
             xhr.setRequestHeader("Authorization", "JWT " + response.token);
-            }
         }
     })
     return response;
@@ -116,19 +115,18 @@ function register(){
 }
 
 function runTests(){
-    register
-        .then(login
-        .then(getUserDetails
+    register()
+        .then(login()
+        .then(getUserDetails()
         .then(getServices()
         .then(orderSubscription()
         .then(checkSubscription()
-        .then(viewInvoices)
+        .then(viewInvoices())
         .then(createRefundRequest()
         .then(createComment()
         .then(viewRefundRequest()
         .then(sendPasswordReset())
         .then(changePassword()
         .then(logout()
-        ))))))))))
-    )
+    ))))))))))
 }

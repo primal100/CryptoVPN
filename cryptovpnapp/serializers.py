@@ -103,11 +103,16 @@ class SubscriptionSerializer(XtraModelSerializer):
         read_only_fields = ('id', 'last_subscribed', 'expires', 'addresses', 'valid')
         write_only_fields = "coin"
 
+class DaysDurationField(fields.DurationField):
+    def to_representation(self, value):
+        return value.days
+
 class SubscriptionTypeSerializer(XtraModelSerializer):
     current_subscription = fields.SerializerMethodField()
+    period = DaysDurationField()
 
-    def get_current_subscription(self, value):
-        return self.instance.has_valid_subscription(self.context['request'].user)
+    def get_current_subscription(self, instance):
+        return instance.has_valid_subscription(self.context['request'].user)
 
     class Meta:
         model = SubscriptionType
@@ -123,8 +128,8 @@ class ServiceSerializer(XtraModelSerializer):
     current_subscription = fields.SerializerMethodField()
     subscription_types = SubscriptionTypeEmbeddedSerializer(many=True, read_only=True)
 
-    def get_current_subscription(self, value):
-        return self.instance.has_valid_subscription(self.context['request'].user)
+    def get_current_subscription(self, instance):
+        return instance.has_valid_subscription(self.context['request'].user)
 
     class Meta:
         model = Service

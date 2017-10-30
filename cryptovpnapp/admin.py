@@ -31,7 +31,7 @@ class ReadOnlyAdmin(admin.ModelAdmin):
 
 
 class UserAdmin(admin.ModelAdmin):
-    list_display = ('username', 'email', 'is_staff', 'is_superuser', 'is_active', 'date_joined', 'last_login')
+    list_display = ('username', 'email', 'date_joined', 'last_login', 'is_staff', 'is_superuser', 'is_active', )
 
 class ServiceAdmin(admin.ModelAdmin):
     list_display = ('name', 'priority', 'is_active')
