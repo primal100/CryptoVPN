@@ -3,7 +3,7 @@ var baseAuthUrl = "api/1.0/rest-auth/"
 
 var registerUrl = "/api/1.0/rest-auth/registration/";
 var loginUrl = "/api/1.0/rest-auth/login/";
-var logoutUrl = "/api/1.0/rest-auth/login/";
+var logoutUrl = "/api/1.0/rest-auth/logout/";
 var userDetailsUrl = "/api/1.0/rest-auth/user/";
 var passwordResetUrl = "/api/1.0/rest-auth/password/reset/";
 var changePasswordUrl = "/api/1.0/rest-auth/password/change/";
@@ -26,7 +26,7 @@ var loginData = {
 };
 
 var orderSubscriptionData = {
-    subscription_type: 0,
+    subscription_type: 1,
     coin: "BTC"
 };
 
@@ -50,7 +50,7 @@ var changePasswordData = {
 };
 
 function logout(){
-    return $.ajax(loginUrl, {method: "POST"})
+    return $.ajax(logoutUrl, {method: "POST"})
 }
 
 function changePassword(response){

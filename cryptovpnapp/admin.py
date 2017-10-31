@@ -49,7 +49,7 @@ class InvoiceAdmin(ReadOnlyAdmin):
     list_display = ('address', 'currency', 'fiat_due', 'crypto_due', 'start_time', 'expiry_time', 'paid', 'paid_time', 'actual_paid')
 
 class TransactionAdmin(ReadOnlyAdmin):
-    list_display = ('hash', 'coin', 'invoice', 'time', 'total_value', 'fee')
+    list_display = ('hash', 'coin', 'invoice', 'time', 'total_paid', 'fee', 'total_received')
 
 class RefundRequestAdmin(ReadOnlyAdmin):
     list_display = ('user', 'service', 'invoice', 'address', 'transaction_hash', 'amount_requested',

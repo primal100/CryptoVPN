@@ -5,6 +5,7 @@ from django.contrib.auth.models import AbstractUser
 from django.utils.module_loading import import_string
 from django.utils.translation import ugettext_lazy as _
 from .fields import CryptoField, FiatField
+import pytz
 
 class User(AbstractUser):
     first_name = None
@@ -35,6 +36,8 @@ class Service(models.Model):
 
     def has_valid_subscription(self, user):
         response = {'has': False, 'is_valid': False}
+        if not user.is_authenticated:
+            return False
         subscription_types = self.subscription_types.filter(is_active=True)
         for st in subscription_types:
             res = st.has_valid_subscription(user)
@@ -63,10 +66,12 @@ class SubscriptionType(models.Model):
     is_active = models.BooleanField(default=True)
 
     def has_valid_subscription(self, user):
-        sub = self.subscriptions.filter(user=user, is_active=True).first()
-        if sub and sub.check_subscription_paid:
-            return {'has': bool(sub), 'is_valid': True}
-        return {'has': bool(sub), 'is_valid': False}
+        if user.is_authenticated:
+            sub = self.subscriptions.filter(user=user, is_active=True).first()
+            if sub and sub.check_subscription_paid:
+                return {'has': bool(sub), 'is_valid': True}
+            return {'has': bool(sub), 'is_valid': False}
+        return {'has': False, 'is_valid': False}
 
     def save(self, *args, **kwargs):
         super(SubscriptionType, self).save(*args, **kwargs)
@@ -117,7 +122,7 @@ class Subscription(models.Model):
             paid_time = address.check_subscription_paid()
             if paid_time:
                 self.last_subscribed = paid_time
-                self.expires = paid_time + timedelta(days=self.subscription_type.period)
+                self.expires = paid_time + self.subscription_type.period
                 self.save()
                 return True
         return False
@@ -125,7 +130,7 @@ class Subscription(models.Model):
     @property
     def already_subscribed(self):
         if self.expires:
-            return datetime.now() <= self.expires
+            return datetime.utcnow().replace(tzinfo=pytz.utc) <= self.expires
         return False
 
     def deactivate(self):
@@ -139,7 +144,7 @@ class OpenInvoiceAlreadyExists(Exception):
 
 class Address(models.Model):
     public = models.CharField(max_length=64, primary_key=True, editable=False)
-    subscription = models.ForeignKey(Subscription, related_name="subscriptions", null=True, editable=False)
+    subscription = models.ForeignKey(Subscription, related_name="addresses", null=True, editable=False)
     coin = models.CharField(max_length=12, choices=settings.COINS, editable=False)
     is_active = models.BooleanField(default=True)
     test_address = models.BooleanField(default=False, editable=False)
@@ -151,18 +156,21 @@ class Address(models.Model):
         return self.public
 
     def save(self, *args, **kwargs):
-        address = Address.objects.filter(subscription__isnull=True, coin=self.coin, is_active=True, test_address=settings.TEST_ADDRESSES).first()
-        address.subscription = self.subscription
-        address.save()
-        self.id = address.id
+        if not self.pk:
+            address = Address.objects.filter(subscription__isnull=True, coin=self.coin, is_active=True, test_address=settings.TEST_ADDRESSES).first()
+            address.subscription = self.subscription
+            super(Address, address).save(*args, **kwargs)
+            self.id = address.id
+        else:
+            super(Address, self).save(*args, **kwargs)
 
     def coin_api(self):
-        coin_class_str = "cryptovpnapp.%s.Blockchain" % self.coin.lower()
+        coin_class_str = settings.COIN_CLASSES[self.coin]
         coin_class = import_string(coin_class_str)
         return coin_class(self)
 
     def check_invoice_payments(self, subscription_period):
-        invoices = self.invoices.filter(paid=False, start_time__gt=datetime.now() - timedelta(days=subscription_period))
+        invoices = self.invoices.filter(paid=False, start_time__gt=datetime.now() - subscription_period)
         if invoices:
             if self.test_address:
                 transactions = self.coin_api().generate_test_transaction(invoices)
@@ -173,19 +181,22 @@ class Address(models.Model):
                 crypto_paid = 0
                 for t in transactions:
                     if t.datetime >= invoice.start_time and t.datetime <= invoice.expiry_time:
-                        Transaction(tx_hash=t.hash, invoice=invoice, time=t.datetime, total_value=t.total_value, coin=self.coin).save()
-                        crypto_paid += t.total_value
-                        if crypto_paid >= invoice.crypto_price and not invoice.paid:
+                        transaction = Transaction.objects.filter(hash=t.hash).first()
+                        if not transaction:
+                            transaction = Transaction(hash=t.hash, invoice=invoice, time=t.datetime, total_received=t.total_received, total_paid=t.total_paid, coin=self.coin, fee=t.fee)
+                            transaction.save()
+                        crypto_paid += transaction.total_paid
+                        if crypto_paid >= invoice.crypto_due and not invoice.paid:
                             invoice.paid = True
-                            invoice.paid_time = t.datetime
+                            invoice.paid_time = transaction.time
                 invoice.actual_paid = crypto_paid
                 invoice.save()
 
     def check_subscription_paid(self, subscription=None):
         if not subscription:
             subscription = self.subscription
-        self.check_invoice_payments(subscription.period)
-        return self.invoices.filter(paid_time__gt=datetime.now()-timedelta(days=subscription.period)).values_list('paid_time', flat=True).first()
+        self.check_invoice_payments(subscription.subscription_type.period)
+        return self.invoices.filter(paid_time__gt=datetime.now() - subscription.subscription_type.period).values_list('paid_time', flat=True).first()
 
     def deactivate(self):
         self.is_active = False
@@ -200,39 +211,43 @@ class Invoice(models.Model):
     expiry_time = models.DateTimeField()
     paid = models.BooleanField(default=False)
     paid_time = models.DateTimeField(null=True)
-    actual_paid = CryptoField()
+    actual_paid = CryptoField(null=True)
 
     def save(self, subscription=None, *args, **kwargs):
-        if not subscription:
-            subscription = self.address.subscription
-        now = datetime.now()
-        exists = Invoice.objects.filter(address=self, expiry_time__gt=now).exists()
-        if exists:
-            raise OpenInvoiceAlreadyExists
-        else:
-            self.fiat_price = subscription.subscription_type.price
-            period = subscription.subscription_type.period
-            self.currency = subscription.subscription_type.currency
-            self.crypto_price = self.address.coin_api().convert_price_to_crypto(self.currency, self.fiat_price)
-            self.expiry_time = self.start_time + timedelta(minutes=period)
+        if self.pk:
             super(Invoice, self).save(*args, **kwargs)
+        else:
+            if not subscription:
+                subscription = self.address.subscription
+            now = datetime.now()
+            exists = Invoice.objects.filter(address=self.address, expiry_time__gt=now).exists()
+            if exists:
+                raise OpenInvoiceAlreadyExists
+            else:
+                self.fiat_due = subscription.subscription_type.price
+                period = subscription.subscription_type.period
+                self.currency = subscription.subscription_type.currency
+                self.crypto_due = self.address.coin_api().convert_price_to_crypto(self.currency, self.fiat_due)
+                self.expiry_time = now + period
+                super(Invoice, self).save(*args, **kwargs)
 
     def within_time_period(self, timestamp):
         return timestamp >= self.start_time and timestamp <= self.expiry_time
 
     def __str__(self):
-        return self.pk
+        return str(self.pk)
 
 class Transaction(models.Model):
     hash = models.CharField(max_length=128, primary_key=True, editable=False)
     invoice = models.ForeignKey(Invoice)
     time = models.DateTimeField()
     coin = models.CharField(max_length=12, choices=settings.COINS)
-    total_value = CryptoField()
+    total_received = CryptoField()
+    total_paid = CryptoField()
     fee = CryptoField()
 
     def __str__(self):
-        return self.tx_hash
+        return self.hash
 
 class RefundRequest(models.Model):
     user = models.ForeignKey(User, related_name="refund_requests", editable=False)

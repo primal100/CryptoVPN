@@ -33,6 +33,8 @@ ALLOWED_HOSTS = ['*']
 
 #Crypto coin settings
 COINS = [('BTC', 'BITCOIN'), ('ETH', 'ETHEREUM')]
+COIN_CLASSES = {'BTC': 'cryptovpnapp.cryptos.btc.Blockchain'}
+BTC_BLOCKCHAIN_API_CODE = ""
 BTC_PRICE_UPDATE_INTERVAL = 15
 
 #Default settings for new subscriptions
@@ -164,7 +166,7 @@ AUTHENTICATION_BACKENDS = (
 #Django Rest Framework config
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
         'rest_framework.authentication.SessionAuthentication'
     ),
     'DEFAULT_PERMISSION_CLASSES': (

@@ -77,7 +77,7 @@ class AddressSerializer(XtraModelSerializer):
         read_only_fields = ('public', 'invoices')
 
 class AddressEmbeddedSerializer(XtraModelSerializer):
-
+    invoices = InvoiceEmbeddedSerializer(many=True)
     class Meta:
         model = Address
         fields = ('public', 'coin', 'invoices')
@@ -86,10 +86,10 @@ class AddressEmbeddedSerializer(XtraModelSerializer):
 class SubscriptionSerializer(XtraModelSerializer):
     addresses = AddressEmbeddedSerializer(many=True, read_only=True)
     valid = fields.SerializerMethodField()
-    coin = fields.CharField(max_length=12)
+    coin = fields.CharField(max_length=12, write_only=True)
 
-    def get_valid(self, value):
-        return self.instance.check_subscription_paid()
+    def get_valid(self, instance):
+        return instance.check_subscription_paid()
 
     def save(self, **kwargs):
         coin = self.validated_data.pop('coin')
@@ -101,7 +101,7 @@ class SubscriptionSerializer(XtraModelSerializer):
         model = Subscription
         fields = ('id', 'subscription_type', 'coin', 'last_subscribed', 'expires', 'addresses', 'valid')
         read_only_fields = ('id', 'last_subscribed', 'expires', 'addresses', 'valid')
-        write_only_fields = "coin"
+        write_only_fields = ("coin",)
 
 class DaysDurationField(fields.DurationField):
     def to_representation(self, value):

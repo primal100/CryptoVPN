@@ -1,11 +1,13 @@
 from drfxtra.mixins import XtraViewSetMixin
+from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 from rest_framework.mixins import CreateModelMixin
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from rest_auth.registration import views
 from .models import (
-    Service, SubscriptionType, Subscription, Address, Invoice, Transaction, RefundRequest, Comment
+    Service, SubscriptionType, Subscription, Address, Invoice, RefundRequest, Comment
 )
 from .serializers import (
     ServiceSerializer, SubscriptionTypeSerializer, SubscriptionSerializer, AddressSerializer,
@@ -13,6 +15,8 @@ InvoiceSerializer, RefundRequestSerializer, CommentSerializer
 )
 
 UserModel = get_user_model()
+
+views.LoginView.authentication_classes = (JSONWebTokenAuthentication,)
 
 class XtraViewSetMixinWithDeactivate(XtraViewSetMixin):
     def perform_destroy(self, instance):
@@ -44,7 +48,7 @@ class SubscriptionTypeViewset(XtraViewSetMixinWithDeactivate, ReadOnlyModelViewS
     autocomplete_foreign_keys = {'service':{'queryset': Service.objects.filter(is_active=True), 'related_field': 'name'}}
 
 
-class SubscriptionViewset(XtraViewSetMixinWithDeactivate, ReadOnlyModelViewSet):
+class SubscriptionViewset(XtraViewSetMixinWithDeactivate, ReadOnlyModelViewSet, CreateModelMixin):
     queryset = Subscription.objects.filter(is_active=True)
     serializer_class = SubscriptionSerializer
     permission_classes = (IsAuthenticated,)

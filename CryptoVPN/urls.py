@@ -26,3 +26,4 @@ urlpatterns = [
     url(r'^api/1.0/rest-auth/registration/', include('rest_auth.registration.urls')),
     url(r'^api/1.0/', include(cryptovpn_api_urls.urls)),
 ]
+

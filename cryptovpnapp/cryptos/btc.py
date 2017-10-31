@@ -2,7 +2,7 @@ from datetime import datetime
 from blockchain import blockexplorer, exchangerates
 from django.conf import settings
 
-api_code=settings.BTC_WALLET_SETTINGS['api_code']
+api_code=settings.BTC_BLOCKCHAIN_API_CODE
 
 class Blockchain:
     def __init__(self, address=None):
@@ -22,12 +22,24 @@ class Blockchain:
             'size': random.randint(100, 900),
             'inputs': [
                 {
-                    'value': invoices[0].crypto_due
+                    'prev_out': {
+                        'n': 0,
+                        'tx_index': random.randint(100000000, 900000000),
+                        'value': float(invoices[0].crypto_due),
+                        'type': None,
+                        'script': "q1w2e3r4",
+                    },
+                    'script': "q1w2e3r4",
+                    'sequence': 0
                 }
             ],
             'out': [
                 {
-                    'value': invoices[0].crypto_due * 0.999
+                    'n': 1,
+                    'tx_index': random.randint(100000000, 900000000),
+                    'spent': 0,
+                    'value': float(invoices[0].crypto_due) * 0.999,
+                    'script': "abcd1234"
                 }
             ]
         }
@@ -41,13 +53,17 @@ class Blockchain:
 
     def manage_transactions(self, invoices, transactions):
         for t in transactions:
-            t.datetime = datetime.fromtimestamp(t.time)
+            timestamp = datetime.fromtimestamp(t.time)
+            import pytz
+            utc = pytz.UTC
+            t.datetime= utc.localize(timestamp)
         txs = []
         for invoice in invoices:
-            txs += [t for t in transactions if invoice.within_time_period(t.time)]
+            txs += [t for t in transactions if invoice.within_time_period(t.datetime)]
         for t in txs:
-            t.total_value = sum([i.value for i in t.outputs])
-            t.fee = sum([i.value for i in t.inputs]) - t.total_value
+            t.total_paid = sum([i.value for i in t.inputs])
+            t.total_received = sum([i.value for i in t.outputs])
+            t.fee = t.total_paid - t.total_received
         return transactions
 
     def convert_price_to_crypto(self, currency, price):
