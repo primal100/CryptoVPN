@@ -6,5 +6,6 @@ django-rest-auth
 django-filter
 django-cors-headers
 django-jwt-auth
+djangorestframework-jwt
 drfxtra
 blockchain
