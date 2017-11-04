@@ -26,7 +26,6 @@ var loginData = {
 };
 
 var orderSubscriptionData = {
-    subscription_type: 1,
     coin: "BTC"
 };
 
@@ -85,6 +84,7 @@ function checkSubscription(response){
 }
 
 function orderSubscription(response){
+    orderSubscriptionData.subscription_type = response[0].id;
     return $.ajax(subscriptionsUrl, {method: "POST", data: orderSubscriptionData});
 }
 
