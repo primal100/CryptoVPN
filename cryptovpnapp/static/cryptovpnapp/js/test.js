@@ -84,7 +84,7 @@ function checkSubscription(response){
 }
 
 function orderSubscription(response){
-    orderSubscriptionData.subscription_type = response[0].id;
+    orderSubscriptionData.subscription_type = response.results[0].subscription_types[0].id;
     return $.ajax(subscriptionsUrl, {method: "POST", data: orderSubscriptionData});
 }
 
