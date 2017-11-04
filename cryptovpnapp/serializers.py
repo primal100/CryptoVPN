@@ -31,7 +31,6 @@ class CommentEmbeddedSerializer(XtraModelSerializer):
         read_only_fields = ('id', 'user', 'created_on', 'last_modified')
 
 class RefundRequestSerializer(XtraModelSerializer):
-    user = PKStringRelatedField(many=False, read_only=True)
     service = PKStringRelatedField(required=False, many=False, queryset=Service.objects.all())
     address = relations.PrimaryKeyRelatedField(required=False, many=False, queryset=Service.objects.all())
     comments = CommentEmbeddedSerializer(many=True, read_only=True)
@@ -39,18 +38,18 @@ class RefundRequestSerializer(XtraModelSerializer):
     class Meta:
         model = RefundRequest
         fields = (
-        'id', 'user', 'service', 'invoice', 'address', 'transaction_hash', 'amount_requested',
+        'id', 'service', 'invoice', 'address', 'transaction_hash', 'amount_requested',
         'requested_on', 'last_modified', 'text', 'resolved', 'comments')
-        read_only_fields = ('id', 'requested_on', 'last_modified', 'comments', 'user')
+        read_only_fields = ('id', 'requested_on', 'last_modified', 'comments')
 
-class TransactionSerializer(XtraModelSerializer):
+class TransactionEmbeddedSerializer(XtraModelSerializer):
 
     class Meta:
         model = Transaction
-        fields = ('hash', 'invoice', 'time', 'coin', 'total_value', 'fee')
+        fields = ('hash', 'time', 'coin', 'total_paid', 'total_received', 'fee')
 
 class InvoiceSerializer(XtraModelSerializer):
-    transactions = TransactionSerializer(many=True)
+    transactions = TransactionEmbeddedSerializer(many=True)
 
     class Meta:
         model = Invoice

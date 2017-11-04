@@ -195,6 +195,10 @@ ACCOUNT_SESSION_REMEMBER = False
 REST_USE_JWT = True
 REST_SESSION_LOGIN = False
 
+REST_AUTH_SERIALIZERS = {
+    'USER_DETAILS_SERIALIZER': 'cryptovpnapp.serializers.UserDetailsSerializer'
+}
+
 #Django rest framework JWT config
 JWT_AUTH = {
     'JWT_EXPIRATION_DELTA': datetime.timedelta(days=1),

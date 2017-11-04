@@ -62,19 +62,18 @@ function sendPasswordReset(response){
 }
 
 function viewRefundRequest(response){
-    return $.ajax(refundRequestURL, {method: "POST"});
+    return $.ajax(refundRequestUrl, {method: "GET"});
 }
 
 function createComment(response){
-    var refundRequest = response.result;
-    commentData.refund_request = refundRequest.id;
+    commentData.refund_request = response.id;
     return $.ajax(commentUrl, {method: "POST", data: commentData});
 }
 
 function createRefundRequest(response){
     var invoice = response.results[0]
     refundRequestData.invoice = invoice.id;
-    return $.ajax(refundRequestURL, {method: "POST", data: refundRequestData});
+    return $.ajax(refundRequestUrl, {method: "POST", data: refundRequestData});
 }
 
 function viewInvoices(response){
@@ -116,17 +115,15 @@ function register(){
 
 function runTests(){
     register()
-        .then(login()
-        .then(getUserDetails()
-        .then(getServices()
-        .then(orderSubscription()
-        .then(checkSubscription()
-        .then(viewInvoices())
-        .then(createRefundRequest()
-        .then(createComment()
-        .then(viewRefundRequest()
-        .then(sendPasswordReset())
-        .then(changePassword()
-        .then(logout()
-    ))))))))))
+        .then(login)
+        .then(getUserDetails)
+        .then(getServices)
+        .then(orderSubscription)
+        .then(checkSubscription)
+        .then(viewInvoices)
+        .then(createRefundRequest)
+        .then(createComment)
+        .then(viewRefundRequest)
+        .then(changePassword)
+        .then(logout)
 }

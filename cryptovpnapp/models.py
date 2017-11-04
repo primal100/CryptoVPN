@@ -239,7 +239,7 @@ class Invoice(models.Model):
 
 class Transaction(models.Model):
     hash = models.CharField(max_length=128, primary_key=True, editable=False)
-    invoice = models.ForeignKey(Invoice)
+    invoice = models.ForeignKey(Invoice, related_name="transactions")
     time = models.DateTimeField()
     coin = models.CharField(max_length=12, choices=settings.COINS)
     total_received = CryptoField()
@@ -263,7 +263,7 @@ class RefundRequest(models.Model):
     is_active = models.BooleanField(default=True)
 
     def __str__(self):
-        return self.pk
+        return str(self.pk)
 
     def deactivate(self):
         for comment in self.comments.filter(is_active=True):
@@ -280,7 +280,7 @@ class Comment(models.Model):
     is_active = models.BooleanField(default=True)
 
     def __str__(self):
-        return self.pk
+        return str(self.pk)
 
     def deactivate(self):
         self.is_active = False

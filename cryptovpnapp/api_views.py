@@ -97,6 +97,7 @@ class RefundRequestViewset(XtraViewSetMixinWithDeactivate, ModelViewSet):
     filter_fields = ('amount_requested', 'transaction_hash', 'requested_on', 'last_modified', 'resolved')
     ordering_fields = ('requested_on', 'solved', 'amount_requsted')
     search_fields = ('transaction_id')
+    set_field_value_to_current_user_on_create = 'user'
     autocomplete_foreign_keys = {'address': {'queryset': Address.objects.filter(is_active=True, test_address=settings.TEST_ADDRESSES)},
                                  'service': {'queryset': Service.objects.filter(is_active=True)},
                                  'invoice': {'queryset': Invoice.objects.filter()},
@@ -114,6 +115,7 @@ class CommentViewset(XtraViewSetMixinWithDeactivate, ModelViewSet):
     filter_fields = ('user', 'refund_request', 'created_on', 'last_modified')
     ordering_fields = ('created_on', 'last_modified')
     search_fields = ('text',)
+    set_field_value_to_current_user_on_create = 'user'
     log = True
 
     def get_queryset(self):
