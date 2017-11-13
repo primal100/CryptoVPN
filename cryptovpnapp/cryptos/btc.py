@@ -38,7 +38,8 @@ class Blockchain:
                     'n': 1,
                     'tx_index': random.randint(100000000, 900000000),
                     'spent': 0,
-                    'value': float(invoices[0].crypto_due) * 0.999,
+                    'addr': self.address,
+                    'value': float(invoices[0].crypto_due),
                     'script': "abcd1234"
                 }
             ]
@@ -61,9 +62,7 @@ class Blockchain:
         for invoice in invoices:
             txs += [t for t in transactions if invoice.within_time_period(t.datetime)]
         for t in txs:
-            t.total_paid = sum([i.value for i in t.inputs])
-            t.total_received = sum([i.value for i in t.outputs])
-            t.fee = t.total_paid - t.total_received
+            t.total_received = sum([o.value for o in t.outputs if o.address == self.address])
         return transactions
 
     def convert_price_to_crypto(self, currency, price):

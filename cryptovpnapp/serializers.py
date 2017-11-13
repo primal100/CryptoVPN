@@ -46,7 +46,7 @@ class TransactionEmbeddedSerializer(XtraModelSerializer):
 
     class Meta:
         model = Transaction
-        fields = ('hash', 'time', 'coin', 'total_paid', 'total_received', 'fee')
+        fields = ('hash', 'time', 'coin', 'total_received')
 
 class InvoiceSerializer(XtraModelSerializer):
     transactions = TransactionEmbeddedSerializer(many=True)

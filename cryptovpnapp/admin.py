@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.models import Group
-from .models import User, Service, SubscriptionType, Subscription, Address, Invoice, Transaction
+from .models import User, Service, SubscriptionType, Subscription, Address, Invoice, Transaction, RefundRequest, Comment
 
 class ReadOnlyAdmin(admin.ModelAdmin):
     change_form_template = "admin/read-only-view.html"
@@ -49,13 +49,13 @@ class InvoiceAdmin(ReadOnlyAdmin):
     list_display = ('address', 'currency', 'fiat_due', 'crypto_due', 'start_time', 'expiry_time', 'paid', 'paid_time', 'actual_paid')
 
 class TransactionAdmin(ReadOnlyAdmin):
-    list_display = ('hash', 'coin', 'invoice', 'time', 'total_paid', 'fee', 'total_received')
+    list_display = ('hash', 'coin', 'invoice', 'time', 'total_received')
 
-class RefundRequestAdmin(ReadOnlyAdmin):
+class RefundRequestAdmin(admin.ModelAdmin):
     list_display = ('user', 'service', 'invoice', 'address', 'transaction_hash', 'amount_requested',
                     'requested_on', 'last_modified', 'resolved', 'is_active')
 
-class CommentAdmin(ReadOnlyAdmin):
+class CommentAdmin(admin.ModelAdmin):
     list_display = ('user', 'refund_request', 'created_on', 'last_modified', 'is_active')
 
 admin.site.register(User, UserAdmin)
@@ -65,4 +65,6 @@ admin.site.register(Subscription, SubscriptionAdmin)
 admin.site.register(Address, AddressAdmin)
 admin.site.register(Invoice, InvoiceAdmin)
 admin.site.register(Transaction, TransactionAdmin)
+admin.site.register(RefundRequest, RefundRequestAdmin)
+admin.site.register(Comment, CommentAdmin)
 admin.site.unregister(Group)

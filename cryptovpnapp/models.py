@@ -183,10 +183,10 @@ class Address(models.Model):
                     if t.datetime >= invoice.start_time and t.datetime <= invoice.expiry_time:
                         transaction = Transaction.objects.filter(hash=t.hash).first()
                         if not transaction:
-                            transaction = Transaction(hash=t.hash, invoice=invoice, time=t.datetime, total_received=t.total_received, total_paid=t.total_paid, coin=self.coin, fee=t.fee)
+                            transaction = Transaction(hash=t.hash, invoice=invoice, time=t.datetime, total_received=t.total_received, coin=self.coin)
                             transaction.save()
-                        crypto_paid += transaction.total_paid
-                        if crypto_paid >= invoice.crypto_due and not invoice.paid:
+                        crypto_paid += transaction.total_received
+                        if crypto_paid >= float(invoice.crypto_due) and not invoice.paid:
                             invoice.paid = True
                             invoice.paid_time = transaction.time
                 invoice.actual_paid = crypto_paid
@@ -225,10 +225,9 @@ class Invoice(models.Model):
                 raise OpenInvoiceAlreadyExists
             else:
                 self.fiat_due = subscription.subscription_type.price
-                period = subscription.subscription_type.period
                 self.currency = subscription.subscription_type.currency
                 self.crypto_due = self.address.coin_api().convert_price_to_crypto(self.currency, self.fiat_due)
-                self.expiry_time = now + period
+                self.expiry_time = now + timedelta(minutes=self.address.coin_api().expiry_period)
                 super(Invoice, self).save(*args, **kwargs)
 
     def within_time_period(self, timestamp):
@@ -243,8 +242,6 @@ class Transaction(models.Model):
     time = models.DateTimeField()
     coin = models.CharField(max_length=12, choices=settings.COINS)
     total_received = CryptoField()
-    total_paid = CryptoField()
-    fee = CryptoField()
 
     def __str__(self):
         return self.hash
