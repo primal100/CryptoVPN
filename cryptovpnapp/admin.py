@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin
 from django.contrib.admin.models import LogEntry, DELETION
 from django.utils.html import escape
 from django.core.urlresolvers import reverse
@@ -86,7 +87,7 @@ class LogEntryAdmin(admin.ModelAdmin):
         return super(LogEntryAdmin, self).queryset(request) \
             .prefetch_related('content_type')
 
-class UserAdmin(admin.ModelAdmin):
+class CustomUserAdmin(UserAdmin):
     list_display = ('username', 'email', 'date_joined', 'last_login', 'is_staff', 'is_superuser', 'is_active', )
 
 class ServiceAdmin(admin.ModelAdmin):
@@ -114,7 +115,7 @@ class RefundRequestAdmin(admin.ModelAdmin):
 class CommentAdmin(admin.ModelAdmin):
     list_display = ('user', 'refund_request', 'created_on', 'last_modified', 'is_active')
 
-admin.site.register(User, UserAdmin)
+admin.site.register(User, CustomUserAdmin)
 admin.site.register(Service, ServiceAdmin)
 admin.site.register(SubscriptionType, SubscriptionTypeAdmin)
 admin.site.register(Subscription, SubscriptionAdmin)
