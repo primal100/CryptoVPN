@@ -4,6 +4,7 @@ from django.contrib.admin.models import LogEntry, DELETION
 from django.utils.html import escape
 from django.core.urlresolvers import reverse
 from django.contrib.auth.models import Group
+from django.utils.translation import ugettext, ugettext_lazy as _
 from .models import User, Service, SubscriptionType, Subscription, Address, Invoice, Transaction, RefundRequest, Comment
 
 class ReadOnlyAdmin(admin.ModelAdmin):
@@ -88,6 +89,13 @@ class LogEntryAdmin(admin.ModelAdmin):
             .prefetch_related('content_type')
 
 class CustomUserAdmin(UserAdmin):
+    fieldsets = (
+        (None, {'fields': ('username', 'password', 'email')}),
+        (_('Permissions'), {'fields': ('is_active', 'is_staff', 'is_superuser',
+                                       'groups', 'user_permissions')}),
+        (_('Important dates'), {'fields': ('last_login', 'date_joined')}),
+    )
+    search_fields = ('username', 'email')
     list_display = ('username', 'email', 'date_joined', 'last_login', 'is_staff', 'is_superuser', 'is_active', )
 
 class ServiceAdmin(admin.ModelAdmin):
